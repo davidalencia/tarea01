@@ -5,33 +5,49 @@ import (
     "encoding/csv"
     "os"
     "fmt"
-    "io"
     "strconv"
+    "net/http"
+    "io/ioutil"
+    "strings"
 )
 
-type Location struct{
+type location struct{
   name string
   lat float64
   lon float64
   weather string
 }
 
-func (l *Location) setWeather()  {
-  l.weather = "new weather"
+
+func (l *location) setWeather()  {
+  json := apiCall(climateUrlFromLocation(l))
+  l.weather = strings.Split(json, "\"")[17]
 }
 
+func climateUrlFromLocation(l *location) string {
+  const apiKey = "352ab509f62f8707940ca19d3ab12341"
+  baseUrl :="http://api.openweathermap.org/data/2.5/weather"
+  return fmt.Sprintf("%s?lang=es&lat=%f&lon=%f&APPID=%s", baseUrl, l.lat, l.lon, apiKey)
+}
+
+func apiCall(url string) string{
+  res, _ := http.Get(url)
+  data, _ :=  ioutil.ReadAll(res.Body)
+  return string(data)
+}
 
 func main()  {
     f, _ := os.Open("dataset.csv")
     r := csv.NewReader(bufio.NewReader(f))
+    lines, _ := r.ReadAll()
 
-    m := make(map[string]*Location)
+    m := make(map[string]*location)
 
-    for line, e := r.Read(); e != io.EOF; line, e = r.Read(){
+    for _, line := range lines{
       for alfa := 0; alfa<=1; alfa++{
-        lon, _ := strconv.ParseFloat((line[alfa*2+2]), 64)
-        lat, _ := strconv.ParseFloat((line[alfa*2+3]), 64)
-        m[line[alfa]] = &Location {
+        lat, _ := strconv.ParseFloat((line[alfa*2+2]), 64)
+        lon, _ := strconv.ParseFloat((line[alfa*2+3]), 64)
+        m[line[alfa]] = &location {
           name: line[alfa],
           lat: lat,
           lon: lon,
@@ -43,5 +59,10 @@ func main()  {
     for key, _ := range m {
       m[key].setWeather()
     }
-    fmt.Println(m["MEX"].weather)
+    r = csv.NewReader(bufio.NewReader(f))
+    for _, line := range lines{
+	loc0 := m[line[0]]
+	loc1 := m[line[1]]
+    	fmt.Printf("El clima en %s es %s, %s es %s \n", loc0.name, loc0.weather, loc1.name, loc1.weather)
+    }
 }
