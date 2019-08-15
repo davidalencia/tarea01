@@ -19,9 +19,11 @@ type location struct{
 }
 
 
-func (l *location) setWeather()  {
+func setWeather(loc chan *location)  {
+  l := <-loc
   json := apiCall(climateUrlFromLocation(l))
   l.weather = strings.Split(json, "\"")[17]
+  loc <-l
 }
 
 func climateUrlFromLocation(l *location) string {
@@ -36,18 +38,28 @@ func apiCall(url string) string{
   return string(data)
 }
 
+func printWeather(loc0, loc1 chan *location){
+    l0 := <-loc0
+    l1 := <-loc1
+    fmt.Printf("El clima en %s es %s, %s es %s \n", l0.name, l0.weather, l1.name, l1.weather)
+    loc0 <-l0
+    loc1 <-l1
+}
+
 func main()  {
     f, _ := os.Open("dataset.csv")
     r := csv.NewReader(bufio.NewReader(f))
     lines, _ := r.ReadAll()
 
-    m := make(map[string]*location)
+    m := make(map[string](chan *location))
+   
 
     for _, line := range lines{
-      for alfa := 0; alfa<=1; alfa++{
+    for alfa := 0; alfa<=1; alfa++{
         lat, _ := strconv.ParseFloat((line[alfa*2+2]), 64)
         lon, _ := strconv.ParseFloat((line[alfa*2+3]), 64)
-        m[line[alfa]] = &location {
+        m[line[alfa]] = make(chan *location, 1)
+	m[line[alfa]] <- &location {
           name: line[alfa],
           lat: lat,
           lon: lon,
@@ -57,12 +69,14 @@ func main()  {
     }
 
     for key, _ := range m {
-      m[key].setWeather()
+      go setWeather(m[key])
     }
-    r = csv.NewReader(bufio.NewReader(f))
+    setWeather(m["MEX"])
     for _, line := range lines{
-	loc0 := m[line[0]]
-	loc1 := m[line[1]]
-    	fmt.Printf("El clima en %s es %s, %s es %s \n", loc0.name, loc0.weather, loc1.name, loc1.weather)
+       defer printWeather(m[line[0]], m[line[1]])
     }
+
 }
+
+
+
