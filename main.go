@@ -1,3 +1,4 @@
+//Paquete con las funciones necesarias para ejecutar el programa
 package main
 
 import (
@@ -11,6 +12,8 @@ import (
     "strings"
 )
 
+//Estructura para poder guardar la información necesaria sobre cada lugar incl
+//uyendo clima, codigo, latitud y longitud
 type location struct{
   name string
   lat float64
@@ -19,6 +22,7 @@ type location struct{
 }
 
 
+//Dado un location actualiza el clima utilizando el api de openWeather
 func setWeather(loc chan *location)  {
   l := <-loc
   json := apiCall(climateUrlFromLocation(l))
@@ -26,18 +30,22 @@ func setWeather(loc chan *location)  {
   loc <-l
 }
 
+//Dado un location te regresa el url con el que puedes utilizar el api de openWeather
 func climateUrlFromLocation(l *location) string {
   const apiKey = "352ab509f62f8707940ca19d3ab12341"
   baseUrl :="http://api.openweathermap.org/data/2.5/weather"
   return fmt.Sprintf("%s?lang=es&lat=%f&lon=%f&APPID=%s", baseUrl, l.lat, l.lon, apiKey)
 }
 
+
+//Regresa una cadena qu es la respuesta de una llamada get al url pasado como parametro
 func apiCall(url string) string{
   res, _ := http.Get(url)
   data, _ :=  ioutil.ReadAll(res.Body)
   return string(data)
 }
 
+//Imprime el clima de un vuelo, y toma como parametro 2 canales de location
 func printWeather(loc0, loc1 chan *location){
     l0 := <-loc0
     l1 := <-loc1
@@ -46,6 +54,8 @@ func printWeather(loc0, loc1 chan *location){
     loc1 <-l1
 }
 
+
+//se ejucuta cuando se ejecuta el archivo
 func main()  {
     f, _ := os.Open("dataset.csv")
     r := csv.NewReader(bufio.NewReader(f))

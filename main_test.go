@@ -2,7 +2,6 @@ package main
 
 import (
 	"testing"
-	"strings"
 )
 
 var l = &location{
@@ -34,7 +33,7 @@ func TestSetWeatherSeemsToWork(t *testing.T){
     c <- l
     setWeather(c)
     loc := <-c
-    if(len(strings.Split(loc.weather, " "))<=1){
+    if(len(loc.weather)<=1){
             t.Error("api failed")
     }
 }
